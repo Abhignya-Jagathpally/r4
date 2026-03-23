@@ -122,6 +122,10 @@ class BiomarkerDiscovery:
                 "pvalue": pvalue,
             })
 
+        if not results:
+            logger.warning("No pathway overlaps found (gene names may not match pathway DB)")
+            return pd.DataFrame(columns=["n_overlap", "n_pathway", "fold_enrichment", "pvalue", "significant"])
+
         df = pd.DataFrame(results).sort_values("pvalue")
         df["significant"] = df["pvalue"] < pvalue_threshold
         logger.info(f"Pathway enrichment: {df['significant'].sum()}/{len(df)} significant")

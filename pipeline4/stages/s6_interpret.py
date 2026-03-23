@@ -33,9 +33,12 @@ def run_interpret(config: Any, context: Dict) -> Dict:
         try:
             # Feature importance from model
             if hasattr(model, "feature_importance"):
-                imp = model.feature_importance(feature_names=list(features.columns))
-                imp.to_csv(interp_dir / f"{model_name}_importance.csv")
-                all_rankings[model_name] = imp
+                try:
+                    imp = model.feature_importance(feature_names=list(features.columns))
+                    imp.to_csv(interp_dir / f"{model_name}_importance.csv")
+                    all_rankings[model_name] = imp
+                except Exception as e:
+                    logger.warning(f"Feature importance failed for {model_name}: {e}")
 
             elif hasattr(model, "get_coefficients"):
                 coefs = model.get_coefficients()
