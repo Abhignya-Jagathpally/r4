@@ -1,0 +1,9 @@
+{
+  "shap_max_samples": 500,
+  "top_k_genes": 50,
+  "run_pathway_enrichment": true,
+  "attention_extraction": true,
+  "stability_n_bootstrap": 100,
+  "stability_threshold": 0.6,
+  "pathway_pvalue_threshold": 0.05
+}

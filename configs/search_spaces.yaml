@@ -1,0 +1,297 @@
+# Hyperparameter Search Spaces for Agentic Tuning
+# Defines parameter ranges for each model and frozen preprocessing parameters
+
+# ==============================================================================
+# BASELINE MODELS SEARCH SPACES
+# ==============================================================================
+
+baseline_models:
+  lasso:
+    alpha:
+      type: "float"
+      low: 0.0001
+      high: 1.0
+      log_scale: true
+      frozen: false
+    max_iter:
+      type: "int"
+      low: 1000
+      high: 50000
+      frozen: false
+
+  rf:
+    n_estimators:
+      type: "int"
+      low: 50
+      high: 500
+      frozen: false
+    max_depth:
+      type: "int"
+      low: 5
+      high: 50
+      frozen: false
+    min_samples_split:
+      type: "int"
+      low: 2
+      high: 20
+      frozen: false
+    min_samples_leaf:
+      type: "int"
+      low: 1
+      high: 10
+      frozen: false
+
+  xgboost:
+    n_estimators:
+      type: "int"
+      low: 50
+      high: 500
+      frozen: false
+    max_depth:
+      type: "int"
+      low: 3
+      high: 15
+      frozen: false
+    learning_rate:
+      type: "float"
+      low: 0.001
+      high: 0.5
+      log_scale: true
+      frozen: false
+    subsample:
+      type: "float"
+      low: 0.5
+      high: 1.0
+      frozen: false
+    colsample_bytree:
+      type: "float"
+      low: 0.5
+      high: 1.0
+      frozen: false
+    gamma:
+      type: "float"
+      low: 0.0
+      high: 5.0
+      frozen: false
+
+# ==============================================================================
+# GRAPH ML MODELS SEARCH SPACES
+# ==============================================================================
+
+graph_models:
+  gat:
+    hidden_dim:
+      type: "int"
+      low: 32
+      high: 256
+      frozen: false
+    num_heads:
+      type: "int"
+      low: 2
+      high: 8
+      frozen: false
+    num_layers:
+      type: "int"
+      low: 2
+      high: 6
+      frozen: false
+    dropout:
+      type: "float"
+      low: 0.0
+      high: 0.7
+      frozen: false
+    learning_rate:
+      type: "float"
+      low: 0.00001
+      high: 0.01
+      log_scale: true
+      frozen: false
+    weight_decay:
+      type: "float"
+      low: 0.0
+      high: 0.01
+      frozen: false
+
+  gcn:
+    hidden_dim:
+      type: "int"
+      low: 32
+      high: 256
+      frozen: false
+    num_layers:
+      type: "int"
+      low: 2
+      high: 6
+      frozen: false
+    dropout:
+      type: "float"
+      low: 0.0
+      high: 0.7
+      frozen: false
+    learning_rate:
+      type: "float"
+      low: 0.00001
+      high: 0.01
+      log_scale: true
+      frozen: false
+    weight_decay:
+      type: "float"
+      low: 0.0
+      high: 0.01
+      frozen: false
+    activation:
+      type: "categorical"
+      choices: ["relu", "elu", "gelu"]
+      frozen: false
+
+# ==============================================================================
+# FROZEN PREPROCESSING PARAMETERS
+# ==============================================================================
+
+preprocessing:
+  # These parameters are LOCKED and cannot be modified during tuning
+  missingness_strategy:
+    type: "categorical"
+    choices: ["knn"]
+    frozen: true
+
+  normalization_method:
+    type: "categorical"
+    choices: ["log2_combat"]
+    frozen: true
+
+  batch_column:
+    type: "categorical"
+    choices: ["source"]
+    frozen: true
+
+  k_neighbors:
+    type: "int"
+    low: 5
+    high: 5
+    frozen: true
+
+  min_var_threshold:
+    type: "float"
+    low: 0.01
+    high: 0.01
+    frozen: true
+
+# ==============================================================================
+# FEATURE ENGINEERING SEARCH SPACES
+# ==============================================================================
+
+feature_engineering:
+  pathway_aggregation_method:
+    type: "categorical"
+    choices: ["mean", "median"]
+    frozen: false
+
+  pathway_normalization:
+    type: "categorical"
+    choices: ["zscore", "minmax", "none"]
+    frozen: false
+
+  dimensionality_reduction:
+    type: "categorical"
+    choices: ["pca", "none"]
+    frozen: false
+
+  n_components_pca:
+    type: "int"
+    low: 10
+    high: 100
+    frozen: false
+
+# ==============================================================================
+# TRAINING HYPERPARAMETER SEARCH SPACES
+# ==============================================================================
+
+training:
+  batch_size:
+    type: "categorical"
+    choices: [16, 32, 64, 128]
+    frozen: false
+
+  learning_rate:
+    type: "float"
+    low: 0.00001
+    high: 0.1
+    log_scale: true
+    frozen: false
+
+  optimizer:
+    type: "categorical"
+    choices: ["adam", "sgd", "adamw"]
+    frozen: false
+
+  scheduler:
+    type: "categorical"
+    choices: ["constant", "linear", "cosine"]
+    frozen: false
+
+  weight_decay:
+    type: "float"
+    low: 0.0
+    high: 0.01
+    frozen: false
+
+  early_stopping_patience:
+    type: "int"
+    low: 5
+    high: 50
+    frozen: false
+
+# ==============================================================================
+# DATA SPLIT CONFIGURATION (FROZEN)
+# ==============================================================================
+
+data_splits:
+  # Train-test splits are FROZEN (patient-level split)
+  test_size:
+    type: "float"
+    low: 0.2
+    high: 0.2
+    frozen: true
+
+  val_size:
+    type: "float"
+    low: 0.1
+    high: 0.1
+    frozen: true
+
+  random_state:
+    type: "int"
+    low: 42
+    high: 42
+    frozen: true
+
+  stratify:
+    type: "categorical"
+    choices: [true]
+    frozen: true
+
+# ==============================================================================
+# NOTES ON PARAMETER CONSTRAINTS
+# ==============================================================================
+
+notes: |
+  Frozen Parameters:
+  - All preprocessing parameters are locked to prevent data leakage
+  - Data split ratios are fixed (test=0.2, val=0.1, patient-level)
+  - Random seed is fixed for reproducibility
+
+  Editable Surface:
+  - Model hyperparameters (all baseline and graph ML models)
+  - Feature engineering choices (pathway aggregation method, etc.)
+  - Training hyperparameters (learning rate, batch size, optimizer)
+
+  Optimization:
+  - Primary metric: roc_auc (from base_config.yaml)
+  - Budget: 3600 seconds or 50 experiments (from base_config.yaml)
+  - Search strategy: Agent-based with Gaussian perturbations
+
+  Preprocessing Contract:
+  - Hash of data_pipeline/ directory is locked at tuning start
+  - Every experiment verifies preprocessing hasn't changed
+  - If preprocessing is modified, tuning halts with error

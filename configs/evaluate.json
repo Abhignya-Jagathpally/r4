@@ -1,0 +1,8 @@
+{
+  "metrics": ["c_index", "td_auc", "brier_score", "calibration"],
+  "bootstrap_n": 1000,
+  "ci_level": 0.95,
+  "fairness_groups": ["iss_stage", "cytogenetic_risk"],
+  "time_horizons": [12, 24, 36, 60],
+  "risk_groups": 3
+}

@@ -1,0 +1,39 @@
+{
+  "n_trials": 50,
+  "timeout_seconds": 3600,
+  "target_model": "deepsurv",
+  "target_metric": "c_index",
+  "search_spaces": {
+    "deepsurv": {
+      "hidden_dims": {
+        "type": "categorical",
+        "choices": [[128, 64], [256, 128], [256, 128, 64], [512, 256, 128]]
+      },
+      "dropout": {
+        "type": "float",
+        "low": 0.1,
+        "high": 0.5
+      },
+      "learning_rate": {
+        "type": "loguniform",
+        "low": 1e-5,
+        "high": 1e-2
+      },
+      "weight_decay": {
+        "type": "loguniform",
+        "low": 1e-6,
+        "high": 1e-2
+      },
+      "batch_size": {
+        "type": "categorical",
+        "choices": [32, 64, 128]
+      }
+    }
+  },
+  "pruner": "hyperband",
+  "pruner_params": {
+    "min_resource": 5,
+    "max_resource": 100,
+    "reduction_factor": 3
+  }
+}

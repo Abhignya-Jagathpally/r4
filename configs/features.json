@@ -1,0 +1,20 @@
+{
+  "variance_threshold": 0.01,
+  "n_top_genes": 2000,
+  "pathway_scoring": true,
+  "pathway_db": "hallmark",
+  "n_pca_components": 50,
+  "encode_clinical": true,
+  "hallmark_pathways": [
+    "MYC_TARGETS_V1",
+    "MTORC1_SIGNALING",
+    "IL6_JAK_STAT3_SIGNALING",
+    "INTERFERON_GAMMA_RESPONSE",
+    "UNFOLDED_PROTEIN_RESPONSE",
+    "HYPOXIA",
+    "P53_PATHWAY",
+    "TNFA_SIGNALING_VIA_NFKB",
+    "PI3K_AKT_MTOR_SIGNALING",
+    "OXIDATIVE_PHOSPHORYLATION"
+  ]
+}

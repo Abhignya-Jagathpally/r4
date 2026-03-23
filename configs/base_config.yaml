@@ -1,0 +1,274 @@
+# Master Configuration for MM Proteomics Pipeline
+# This file references all sub-configurations
+
+# ==============================================================================
+# DATA CONFIGURATION
+# ==============================================================================
+
+data:
+  pxd_id: "PXD019126"
+  cancer_type: "multiple myeloma"
+  data_dir: "data"
+  raw_dir: "data/raw"
+  standardized_dir: "data/standardized"
+  analysis_ready_dir: "data/analysis_ready"
+
+# ==============================================================================
+# PREPROCESSING CONFIGURATION
+# ==============================================================================
+
+preprocessing:
+  # Missingness handling
+  missingness_strategy: "knn"  # Options: knn, mice, mean, drop
+  missingness_threshold: 0.5  # Drop features with >50% missing
+  k_neighbors: 5  # For knn imputation
+
+  # Normalization
+  normalization_method: "log2_combat"  # Options: log2, log2_combat, quantile, robust
+  batch_column: "source"  # Column indicating batch/dataset
+
+  # Feature filtering
+  min_var_threshold: 0.01  # Minimum variance for feature retention
+  max_missing_samples_pct: 0.5  # Max % of samples with missing values
+
+# ==============================================================================
+# PATHWAY CONFIGURATION
+# ==============================================================================
+
+pathways:
+  database: "hallmark"  # Options: hallmark, kegg, reactome, custom
+  aggregation_method: "mean"  # Options: mean, median, pca, ssgsea
+  min_genes_per_pathway: 5  # Minimum genes required in pathway
+  pathway_source: "msigdb"  # Options: msigdb, reactome, string
+
+# ==============================================================================
+# BASELINE MODELS CONFIGURATION
+# ==============================================================================
+
+baseline_models:
+  - "lasso"
+  - "rf"
+  - "xgboost"
+
+baseline_config:
+  lasso:
+    alpha: 0.01
+    max_iter: 10000
+    cv: 5
+    standardize: true
+
+  rf:
+    n_estimators: 100
+    max_depth: 20
+    min_samples_split: 5
+    min_samples_leaf: 2
+    max_features: "sqrt"
+    n_jobs: -1
+
+  xgboost:
+    n_estimators: 100
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    eval_metric: "logloss"
+
+# ==============================================================================
+# GRAPH ML CONFIGURATION
+# ==============================================================================
+
+graph_models:
+  - "gat"
+  - "gcn"
+
+graph_ml_config:
+  gat:
+    hidden_dim: 64
+    num_heads: 4
+    num_layers: 3
+    dropout: 0.5
+    learning_rate: 0.001
+    epochs: 100
+    batch_size: 32
+    use_gpu: true
+
+  gcn:
+    hidden_dim: 64
+    num_layers: 3
+    dropout: 0.5
+    learning_rate: 0.001
+    epochs: 100
+    batch_size: 32
+    use_gpu: true
+
+# ==============================================================================
+# BENCHMARK CONFIGURATION
+# ==============================================================================
+
+benchmark:
+  test_size: 0.2
+  val_size: 0.1
+  random_state: 42
+  stratify: true  # Stratify splits by patient outcome
+  metrics:
+    - "accuracy"
+    - "roc_auc"
+    - "f1"
+    - "precision"
+    - "recall"
+    - "log_loss"
+
+# ==============================================================================
+# ORCHESTRATION CONFIGURATION
+# ==============================================================================
+
+orchestration:
+  # Snakemake configuration
+  snakemake:
+    cores: 4
+    local_cores: 4
+    use_conda: true
+    conda_prefix: ".conda"
+    rerun_incomplete: true
+
+  # Nextflow configuration
+  nextflow:
+    profile: "local"  # Options: local, slurm, docker, singularity
+    cpus: 4
+    memory: "16g"
+    max_retries: 2
+
+  # DVC configuration
+  dvc:
+    remote_type: "local"  # Options: local, s3, gcs, azure
+    remote_path: ".dvc_cache"
+    auto_push: false
+
+  # MLflow configuration
+  mlflow:
+    tracking_uri: "sqlite:///mlflow.db"
+    artifact_root: "mlruns"
+    backend_store_uri: null
+
+# ==============================================================================
+# AGENTIC TUNING CONFIGURATION
+# ==============================================================================
+
+agentic_tuning:
+  # Budget constraints
+  budget_seconds: 3600  # 1 hour
+  budget_experiments: 50  # Maximum 50 experiments
+
+  # Optimization metric
+  primary_metric: "roc_auc"
+  minimize: false  # Maximize the metric
+
+  # Search space (see search_spaces.yaml for detailed definitions)
+  max_retries: 3
+  verbose: true
+
+  # Preprocessing contract
+  preprocessing_path: "data_pipeline"  # Path to lock
+  verify_on_each_run: true
+
+# ==============================================================================
+# REPRODUCIBILITY CONFIGURATION
+# ==============================================================================
+
+reproducibility:
+  random_seed: 42
+  deterministic: true
+  cuda_deterministic: true
+  num_threads: 4
+  log_env_info: true
+  save_config_hash: true
+
+# ==============================================================================
+# LOGGING CONFIGURATION
+# ==============================================================================
+
+logging:
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_dir: "logs"
+  log_to_file: true
+  log_format: "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"
+  handlers:
+    - type: "file"
+      path: "logs/pipeline.log"
+    - type: "console"
+      level: "INFO"
+
+# ==============================================================================
+# RESULTS AND REPORTING CONFIGURATION
+# ==============================================================================
+
+results:
+  results_dir: "results"
+  save_plots: true
+  plot_format: "png"  # Options: png, pdf, svg
+  generate_html_report: true
+  compression: "gzip"  # For parquet files
+
+# ==============================================================================
+# COMPUTE CONFIGURATION
+# ==============================================================================
+
+compute:
+  # Ray configuration
+  ray:
+    num_workers: 4
+    cpus_per_worker: 2
+    gpus_per_worker: 0
+    memory_per_worker_gb: 4
+
+  # Dask configuration
+  dask:
+    num_workers: 4
+    threads_per_worker: 1
+    memory_per_worker_gb: 4
+
+  # GPU configuration
+  gpu:
+    use_gpu: false
+    cuda_visible_devices: null  # null = all, or "0,1,2"
+    mixed_precision: false
+
+# ==============================================================================
+# EXPERIMENT TRACKING
+# ==============================================================================
+
+experiment_tracking:
+  experiment_name: "mm_proteomics_v1"
+  run_id: null  # Auto-generated if null
+  tags:
+    project: "multiple_myeloma"
+    dataset: "pxd019126"
+    pipeline_version: "1.0.0"
+  enable_mlflow: true
+  enable_dvc: true
+  enable_wandb: false
+
+# ==============================================================================
+# VALIDATION CONFIGURATION
+# ==============================================================================
+
+validation:
+  # Cross-validation
+  cv_splits: 5
+  cv_strategy: "stratified_k_fold"  # Options: k_fold, stratified_k_fold, time_series
+
+  # Data quality checks
+  check_missing_values: true
+  check_outliers: true
+  check_class_imbalance: true
+  check_feature_correlation: true
+
+# ==============================================================================
+# RESOURCE LIMITS
+# ==============================================================================
+
+resource_limits:
+  max_memory_gb: 64
+  max_cpus: 8
+  max_runtime_hours: 24
+  timeout_per_task_seconds: 3600

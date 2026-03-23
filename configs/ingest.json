@@ -1,0 +1,17 @@
+{
+  "geo_accessions": ["GSE24080", "GSE136337"],
+  "expression_source": "r3_pseudobulk",
+  "expression_path": "data/raw/r3_pseudobulk.h5ad",
+  "clinical_columns": {
+    "time_col": "survival_time",
+    "event_col": "event",
+    "stage_col": "iss_stage",
+    "treatment_col": "treatment",
+    "cytogenetics_col": "cytogenetic_risk",
+    "age_col": "age",
+    "sex_col": "sex"
+  },
+  "min_patients": 20,
+  "demo_mode": true,
+  "demo_n_patients": 500
+}

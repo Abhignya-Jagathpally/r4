@@ -1,0 +1,14 @@
+{
+  "output_format": "html",
+  "figure_dpi": 300,
+  "template_name": "default",
+  "include_sections": [
+    "kaplan_meier",
+    "model_comparison",
+    "calibration",
+    "shap_summary",
+    "biomarker_table",
+    "fairness_dashboard",
+    "attention_heatmap"
+  ]
+}
