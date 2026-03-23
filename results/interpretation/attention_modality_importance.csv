@@ -1,0 +1,4 @@
+modality,raw_importance,normalized
+clinical,0.5,0.3333333333333333
+expression,0.5,0.3333333333333333
+genomic,0.5,0.3333333333333333
