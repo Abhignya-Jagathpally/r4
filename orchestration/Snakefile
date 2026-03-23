@@ -1,0 +1,59 @@
+"""Snakemake workflow (M71: real imports, M75: seeds, M76: dynamic shape, M93: os.path.join)."""
+
+import os
+import json
+
+# M93: os.path.join for cross-platform
+DATA_DIR = os.path.join("data")
+RESULTS_DIR = os.path.join("results")
+CONFIG_DIR = os.path.join("configs")
+
+# M76: Detect actual data shape (no hardcoded counts)
+def get_n_samples():
+    feat_path = os.path.join(DATA_DIR, "features", "combined_features.parquet")
+    if os.path.exists(feat_path):
+        import pandas as pd
+        return len(pd.read_parquet(feat_path))
+    return 0
+
+# M75: Propagate seeds
+SEED = 42
+
+rule all:
+    input:
+        os.path.join(RESULTS_DIR, "pipeline_summary.json")
+
+rule ingest:
+    output: os.path.join(DATA_DIR, "merged", "expression.parquet")
+    params: seed=SEED
+    shell:
+        # M75: PYTHONHASHSEED propagated
+        "PYTHONHASHSEED={params.seed} python main.py --stages ingest --seed {params.seed}"
+
+rule features:
+    input: os.path.join(DATA_DIR, "merged", "expression.parquet")
+    output: os.path.join(DATA_DIR, "features", "combined_features.parquet")
+    params: seed=SEED
+    shell:
+        "PYTHONHASHSEED={params.seed} python main.py --stages features --seed {params.seed}"
+
+rule cohort:
+    input: os.path.join(DATA_DIR, "features", "combined_features.parquet")
+    output: os.path.join(DATA_DIR, "splits", "split_indices.json")
+    params: seed=SEED
+    shell:
+        "PYTHONHASHSEED={params.seed} python main.py --stages cohort --seed {params.seed}"
+
+rule train:
+    input: os.path.join(DATA_DIR, "splits", "split_indices.json")
+    output: os.path.join(RESULTS_DIR, "metrics.json")
+    params: seed=SEED
+    shell:
+        "PYTHONHASHSEED={params.seed} python main.py --stages train evaluate --seed {params.seed}"
+
+rule report:
+    input: os.path.join(RESULTS_DIR, "metrics.json")
+    output: os.path.join(RESULTS_DIR, "pipeline_summary.json")
+    params: seed=SEED
+    shell:
+        "PYTHONHASHSEED={params.seed} python main.py --stages interpret report --seed {params.seed}"

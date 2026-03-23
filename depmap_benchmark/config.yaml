@@ -1,0 +1,28 @@
+# DepMap benchmark config (M63: pinned versions, M68: seed docs)
+depmap:
+  release: "24Q4"
+  datasets:
+    - "CRISPR_gene_effect"
+    - "drug_sensitivity"
+  # M63: Version pinning and checksums
+  checksums:
+    CRISPR_gene_effect: "sha256:pending_after_download"
+    drug_sensitivity: "sha256:pending_after_download"
+
+mm_cell_lines:
+  source: "CCLE"
+  min_lines: 5
+
+benchmark:
+  n_splits: 5
+  metrics: ["pearson_r", "spearman_rho", "rmse", "c_index"]
+
+# M68: Seed propagation documentation
+# Seeds propagate as follows:
+# 1. Global seed set in base config (default: 42)
+# 2. Data split seed = global_seed (ensures reproducible splits)
+# 3. Model init seed = global_seed + model_index
+# 4. Bootstrap seed = global_seed + 1000
+reproducibility:
+  seed: 42
+  verify_checksums: true

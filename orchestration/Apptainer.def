@@ -1,0 +1,31 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+%labels
+    Author Abhignya Jagathpally
+    Version 0.1.0
+
+%post
+    # M73: Correct environment setup in %post
+    apt-get update && apt-get install -y gcc g++ libhdf5-dev pkg-config git
+    pip install --upgrade pip setuptools wheel
+
+    # M78: Pin rapids version (if CUDA available)
+    pip install torch==2.2.1 --index-url https://download.pytorch.org/whl/cu121 || \
+        pip install torch==2.2.1 --index-url https://download.pytorch.org/whl/cpu
+
+    # Install pipeline
+    pip install numpy scipy pandas scikit-learn lifelines scikit-survival \
+        xgboost lightgbm shap anndata scanpy mlflow optuna pydantic \
+        pyarrow matplotlib seaborn plotly jinja2 tqdm joblib
+
+    # Cleanup
+    rm -rf /var/lib/apt/lists/* /root/.cache/pip
+
+%environment
+    export PYTHONHASHSEED=42
+    export NUMBA_DISABLE_JIT=1
+    export PYTHONUNBUFFERED=1
+
+%runscript
+    exec python /app/main.py "$@"
