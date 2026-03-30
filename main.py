@@ -3,7 +3,7 @@
 R4-MM-Clinical: Multi-Modal Clinical Outcome Prediction for Multiple Myeloma.
 
 Entry point for the end-to-end pipeline. Orchestrates 8 stages:
-  ingest -> features -> cohort -> train -> evaluate -> interpret -> report -> autotune
+  ingest -> cohort -> features -> train -> evaluate -> interpret -> report -> autotune
 
 Usage:
     python main.py --stages all
@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List
 logger = logging.getLogger(__name__)
 
 PIPELINE_STAGES = [
-    "ingest", "features", "cohort", "train",
+    "ingest", "cohort", "features", "train",
     "evaluate", "interpret", "report", "autotune",
 ]
 
@@ -37,8 +37,8 @@ def _get_stage_map() -> OrderedDict:
     )
     return OrderedDict([
         ("ingest", run_ingest),
-        ("features", run_features),
         ("cohort", run_cohort),
+        ("features", run_features),
         ("train", run_train),
         ("evaluate", run_evaluate),
         ("interpret", run_interpret),

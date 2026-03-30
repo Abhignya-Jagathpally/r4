@@ -61,8 +61,9 @@ def run_train(config: Any, context: Dict) -> Dict:
                     lr=config.train.learning_rate,
                 )
             elif model_name == "response_classifier":
-                y_train = encoder.get_treatment_response(clinical)[train_idx]
-                y_val = encoder.get_treatment_response(clinical)[val_idx]
+                y_all = encoder.get_treatment_response(clinical, train_idx=train_idx)
+                y_train = y_all[train_idx]
+                y_val = y_all[val_idx]
                 model = model_cls(**params)
                 metrics = model.fit(X_train, y_train, X_val, y_val)
             elif model_name == "deepsurv":

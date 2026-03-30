@@ -63,12 +63,17 @@ class MultiModalFeatureBuilder:
 
     def normalize_modalities(
         self, combined: pd.DataFrame, modality_splits: Dict[str, List[int]],
+        train_idx: Optional[np.ndarray] = None,
     ) -> pd.DataFrame:
-        """StandardScaler per modality to prevent dominance."""
+        """StandardScaler per modality. Fit on training data only to prevent leakage."""
         result = combined.copy()
         for name, indices in modality_splits.items():
             cols = combined.columns[indices]
             scaler = StandardScaler()
-            result[cols] = scaler.fit_transform(result[cols])
+            if train_idx is not None:
+                scaler.fit(result.iloc[train_idx][cols])
+            else:
+                scaler.fit(result[cols])
+            result[cols] = scaler.transform(result[cols])
         logger.info("Normalized features per modality")
         return result

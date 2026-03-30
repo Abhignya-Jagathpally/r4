@@ -12,6 +12,6 @@
     "sex_col": "sex"
   },
   "min_patients": 20,
-  "demo_mode": true,
+  "demo_mode": false,
   "demo_n_patients": 500
 }

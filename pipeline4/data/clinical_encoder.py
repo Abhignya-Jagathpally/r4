@@ -83,10 +83,18 @@ class ClinicalEncoder:
 
     def get_treatment_response(
         self, clinical_df: pd.DataFrame, col: str = "treatment_response",
+        train_idx: Optional[np.ndarray] = None,
     ) -> np.ndarray:
-        """Extract binary treatment response labels."""
+        """Extract binary treatment response labels.
+
+        When inferring from survival, median is computed from train set only
+        to prevent label leakage.
+        """
         if col not in clinical_df.columns:
             logger.warning(f"Column '{col}' not found, inferring from survival")
-            median_os = clinical_df["survival_time"].median()
+            if train_idx is not None:
+                median_os = clinical_df["survival_time"].iloc[train_idx].median()
+            else:
+                median_os = clinical_df["survival_time"].median()
             return (clinical_df["survival_time"] > median_os).astype(int).values
         return clinical_df[col].values.astype(int)

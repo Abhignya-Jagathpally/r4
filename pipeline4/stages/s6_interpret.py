@@ -88,8 +88,21 @@ def run_interpret(config: Any, context: Dict) -> Dict:
 
         if config.interpret.run_pathway_enrichment:
             top_genes = consensus.head(config.interpret.top_k_genes).index.tolist()
+
+            # Try loading real MSigDB pathway DB via legacy module
+            pathway_db = None
+            try:
+                from data_pipeline import PathwayScorer as LegacyPathwayScorer
+                legacy_scorer = LegacyPathwayScorer()
+                loaded = legacy_scorer.load_gene_sets(collection="h.all")
+                if loaded:
+                    pathway_db = loaded
+                    logger.info(f"Using MSigDB pathways for enrichment ({len(loaded)} sets)")
+            except Exception as e:
+                logger.debug(f"Legacy PathwayScorer unavailable for enrichment: {e}")
+
             enrichment = discovery.pathway_enrichment(
-                top_genes, list(features.columns),
+                top_genes, list(features.columns), pathway_db=pathway_db,
             )
             enrichment.to_csv(interp_dir / "pathway_enrichment.csv")
 

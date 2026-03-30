@@ -43,7 +43,7 @@ def run_evaluate(config: Any, context: Dict) -> Dict:
 
         try:
             if model_name == "response_classifier":
-                y_test = encoder.get_treatment_response(clinical)[test_idx]
+                y_test = encoder.get_treatment_response(clinical, train_idx=train_idx)[test_idx]
                 y_prob = model.predict_proba(X_test)[:, 1]
                 clf_report = full_classification_report(y_test, y_prob)
                 metrics.update(clf_report)
@@ -102,6 +102,28 @@ def run_evaluate(config: Any, context: Dict) -> Dict:
                     fairness_results[f"{model_name}_{group_col}"] = fair
                 except Exception as e:
                     logger.warning(f"Fairness audit failed: {e}")
+
+    # Cross-validate C-index with legacy baselines module
+    try:
+        from baselines import SurvivalAnalyzer
+        legacy_analyzer = SurvivalAnalyzer()
+        for model_name, model in trained_models.items():
+            if model_name == "response_classifier" or "c_index" not in all_metrics.get(model_name, {}):
+                continue
+            if model_name == "cox_ph":
+                risk = model.predict(pd.DataFrame(X_test, columns=features.columns))
+            else:
+                risk = model.predict(X_test)
+            legacy_ci = legacy_analyzer.compute_c_index(T_test, E_test, risk)
+            pipeline_ci = all_metrics[model_name]["c_index"]
+            if abs(legacy_ci - pipeline_ci) > 0.01:
+                logger.warning(
+                    f"{model_name} C-index mismatch: pipeline={pipeline_ci:.4f} vs "
+                    f"legacy={legacy_ci:.4f} — check sign conventions"
+                )
+            all_metrics[model_name]["legacy_c_index"] = legacy_ci
+    except Exception as e:
+        logger.debug(f"Legacy baselines cross-validation skipped: {e}")
 
     # Save results
     from pipeline4.utils.io import write_json

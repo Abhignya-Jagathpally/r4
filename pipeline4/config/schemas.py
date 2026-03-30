@@ -50,7 +50,7 @@ class IngestConfig(BaseModel):
         "sex_col": "sex",
     })
     min_patients: int = Field(default=20, ge=1)
-    demo_mode: bool = Field(default=True, description="Generate synthetic data for demo")
+    demo_mode: bool = Field(default=False, description="Generate synthetic data for demo")
     demo_n_patients: int = Field(default=500, ge=50)
 
 

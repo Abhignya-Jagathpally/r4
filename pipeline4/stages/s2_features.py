@@ -1,9 +1,15 @@
-"""Stage 2: Feature engineering — transcriptomic, clinical, genomic features."""
+"""Stage 2: Feature engineering — transcriptomic, clinical, genomic features.
+
+All fitted transforms (PCA, StandardScaler, variance thresholds) are computed
+on training data only to prevent test-set leakage. The cohort split must
+run before this stage.
+"""
 
 import logging
 from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -19,22 +25,37 @@ def run_features(config: Any, context: Dict) -> Dict:
     expression = pd.read_parquet(context["expression_path"])
     clinical = pd.read_parquet(context["clinical_path"])
 
+    # Get training indices for leakage-free fitting
+    split_info = context["split_info"]
+    train_idx = np.array(split_info["train"])
+
     features_dir = Path(config.base.data_dir) / "features"
     features_dir.mkdir(parents=True, exist_ok=True)
 
     tx = TranscriptomicFeatures()
 
-    # Variance filter + top genes
-    expr_filtered = tx.variance_filter(expression, config.features.variance_threshold)
-    expr_filtered = tx.top_variable_genes(expr_filtered, config.features.n_top_genes)
+    # Variance filter + top genes (thresholds from train only)
+    expr_filtered = tx.variance_filter(expression, config.features.variance_threshold, train_idx=train_idx)
+    expr_filtered = tx.top_variable_genes(expr_filtered, config.features.n_top_genes, train_idx=train_idx)
 
-    # Pathway scoring
+    # Pathway scoring (z-scores fit on train only)
+    # Try loading real MSigDB gene sets via legacy data_pipeline module
     pathway_scores = pd.DataFrame(index=expression.index)
     if config.features.pathway_scoring:
-        pathway_scores = tx.pathway_scoring(expression)
+        gene_sets = None
+        try:
+            from data_pipeline import PathwayScorer as LegacyPathwayScorer
+            legacy_scorer = LegacyPathwayScorer()
+            loaded = legacy_scorer.load_gene_sets(collection="h.all")
+            if loaded:
+                gene_sets = loaded
+                logger.info(f"Using MSigDB gene sets from legacy PathwayScorer ({len(loaded)} pathways)")
+        except Exception as e:
+            logger.debug(f"Legacy PathwayScorer unavailable, using built-in gene sets: {e}")
+        pathway_scores = tx.pathway_scoring(expression, gene_sets=gene_sets, train_idx=train_idx)
 
-    # PCA embedding
-    pca_emb, pca_model = tx.pca_embedding(expr_filtered, config.features.n_pca_components)
+    # PCA embedding (fit on train only)
+    pca_emb, pca_model = tx.pca_embedding(expr_filtered, config.features.n_pca_components, train_idx=train_idx)
     pca_df = pd.DataFrame(
         pca_emb, index=expression.index,
         columns=[f"PC{i+1}" for i in range(pca_emb.shape[1])],
@@ -59,7 +80,7 @@ def run_features(config: Any, context: Dict) -> Dict:
     mm = MultiModalFeatureBuilder()
     combined = mm.combine(expr_features, clin_features, gen_features)
     modality_splits = mm.get_modality_splits(expr_features, clin_features, gen_features)
-    combined = mm.normalize_modalities(combined, modality_splits)
+    combined = mm.normalize_modalities(combined, modality_splits, train_idx=train_idx)
 
     # Save
     combined.to_parquet(features_dir / "combined_features.parquet")
