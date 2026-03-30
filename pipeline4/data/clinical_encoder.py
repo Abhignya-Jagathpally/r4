@@ -16,13 +16,22 @@ class ClinicalEncoder:
     def __init__(self, config: Optional[Dict] = None):
         self.config = config or {}
         self._scaler = StandardScaler()
+        self._lab_stats: Dict[str, Tuple[float, float]] = {}
         self._fitted = False
 
-    def encode(self, clinical_df: pd.DataFrame) -> pd.DataFrame:
-        """Encode all clinical features into numeric matrix."""
+    def encode(
+        self, clinical_df: pd.DataFrame,
+        train_idx: Optional[np.ndarray] = None,
+    ) -> pd.DataFrame:
+        """Encode all clinical features into numeric matrix.
+
+        When train_idx is provided, scalers and statistics are fit on
+        training rows only to prevent test-set leakage.
+        """
+        fit_df = clinical_df.iloc[train_idx] if train_idx is not None else clinical_df
         encoded_parts = []
 
-        # ISS stage (ordinal)
+        # ISS stage (ordinal — one-hot is stateless, no leakage)
         if "iss_stage" in clinical_df.columns:
             iss = pd.get_dummies(clinical_df["iss_stage"], prefix="iss", dtype=float)
             encoded_parts.append(iss)
@@ -37,29 +46,36 @@ class ClinicalEncoder:
             treat = pd.get_dummies(clinical_df["treatment"], prefix="tx", dtype=float)
             encoded_parts.append(treat)
 
-        # Age (standardized)
+        # Age (standardized — fit on train only)
         if "age" in clinical_df.columns:
             age = clinical_df[["age"]].copy().astype(float)
-            age = age.fillna(age.median())
+            train_median = fit_df["age"].median()
+            age = age.fillna(train_median)
             if not self._fitted:
-                self._scaler.fit(age)
+                self._scaler.fit(age.iloc[train_idx] if train_idx is not None else age)
                 self._fitted = True
             age_scaled = pd.DataFrame(
                 self._scaler.transform(age), index=clinical_df.index, columns=["age_scaled"]
             )
             encoded_parts.append(age_scaled)
 
-        # Sex (binary)
+        # Sex (binary — stateless mapping, no leakage)
         if "sex" in clinical_df.columns:
             sex = (clinical_df["sex"].map({"M": 1, "F": 0, "Male": 1, "Female": 0})
                    .fillna(0).to_frame("sex_male"))
             encoded_parts.append(sex)
 
-        # Lab values if available
+        # Lab values — fit mean/std on training data only
         for lab in ["beta2_microglobulin", "albumin", "ldh"]:
             if lab in clinical_df.columns:
-                vals = clinical_df[[lab]].astype(float).fillna(clinical_df[lab].median())
-                vals_scaled = (vals - vals.mean()) / (vals.std() + 1e-8)
+                train_vals = fit_df[lab].astype(float)
+                lab_median = train_vals.median()
+                lab_mean = train_vals.mean()
+                lab_std = train_vals.std()
+                self._lab_stats[lab] = (lab_mean, lab_std)
+
+                vals = clinical_df[[lab]].astype(float).fillna(lab_median)
+                vals_scaled = (vals - lab_mean) / (lab_std + 1e-8)
                 vals_scaled.columns = [f"{lab}_scaled"]
                 encoded_parts.append(vals_scaled)
 

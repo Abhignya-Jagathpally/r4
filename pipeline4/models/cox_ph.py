@@ -44,7 +44,9 @@ class CoxPHModel:
         """Return survival probabilities at specified times."""
         sf = self.fitter.predict_survival_function(X)
         if times is not None:
-            sf = sf.loc[sf.index.isin(times) | True]  # Interpolate to nearest
+            # Reindex to requested times with forward-fill interpolation
+            sf = sf.reindex(sf.index.union(times)).sort_index().interpolate(method="index")
+            sf = sf.loc[times]
         return sf
 
     def get_coefficients(self) -> pd.DataFrame:

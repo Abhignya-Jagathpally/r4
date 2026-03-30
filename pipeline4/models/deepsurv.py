@@ -126,6 +126,7 @@ class DeepSurvModel:
                 risk = self.model(X_b)
                 loss = cox_partial_likelihood_loss(risk, T_b, E_b)
                 if torch.isnan(loss):
+                    logger.warning(f"NaN loss at epoch {epoch+1}, batch {n_batches+1} — skipping")
                     continue
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
