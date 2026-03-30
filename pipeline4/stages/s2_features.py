@@ -64,9 +64,9 @@ def run_features(config: Any, context: Dict) -> Dict:
     # Expression features = PCA + pathway scores
     expr_features = pd.concat([pca_df, pathway_scores], axis=1)
 
-    # Clinical features
+    # Clinical features (statistics fit on train only)
     clin_builder = ClinicalFeatureBuilder()
-    clin_features = clin_builder.build(clinical)
+    clin_features = clin_builder.build(clinical, train_idx=train_idx)
 
     # Genomic features (synthetic for demo)
     genomic = GenomicFeatures()

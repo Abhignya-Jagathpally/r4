@@ -24,13 +24,22 @@ class FairnessAuditor:
         result = {}
         for group_val in groups.unique():
             mask = groups.values == group_val
-            if mask.sum() < 10:
+            n_group = int(mask.sum())
+            n_events = int(E[mask].sum())
+            if n_group < 10:
+                continue
+            if n_events < 2:
+                logger.warning(
+                    f"Subgroup '{group_val}': only {n_events} events in {n_group} patients — "
+                    f"C-index undefined, skipping"
+                )
+                result[str(group_val)] = {"c_index": float("nan"), "n": n_group, "n_events": n_events}
                 continue
             try:
                 ci = ci_fn(T[mask], -risk_scores[mask], E[mask])
-                result[str(group_val)] = {"c_index": float(ci), "n": int(mask.sum())}
+                result[str(group_val)] = {"c_index": float(ci), "n": n_group, "n_events": n_events}
             except Exception:
-                result[str(group_val)] = {"c_index": float("nan"), "n": int(mask.sum())}
+                result[str(group_val)] = {"c_index": float("nan"), "n": n_group, "n_events": n_events}
 
         # Compute disparity
         cis = [v["c_index"] for v in result.values() if np.isfinite(v["c_index"])]

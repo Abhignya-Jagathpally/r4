@@ -64,6 +64,7 @@ def run_evaluate(config: Any, context: Dict) -> Dict:
                     concordance_index, T_test, E_test, risk_scores,
                     n_iterations=min(config.evaluate.bootstrap_n, 200),
                     ci_level=config.evaluate.ci_level,
+                    point_estimate=ci,
                 )
                 metrics["c_index_ci"] = ci_boot
 

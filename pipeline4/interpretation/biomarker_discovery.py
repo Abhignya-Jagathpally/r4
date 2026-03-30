@@ -7,59 +7,19 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from pipeline4.features.transcriptomic import HALLMARK_GENE_SETS
+
 logger = logging.getLogger(__name__)
 
-# MM-relevant pathways for enrichment (expanded from MSigDB Hallmark sets)
-HALLMARK_PATHWAYS = {
-    "MYC_TARGETS": [
-        "MYC", "NPM1", "NCL", "RPS3", "RPL3", "EIF4A1", "LDHA", "PKM", "ENO1",
-        "NOP56", "NOP58", "BYSL", "MRTO4", "RRP12", "IMP4", "SRM", "UTP20",
-        "HSPD1", "PHB", "PHB2", "CCT2", "CCT3", "CCT5", "CCT7", "CCT8",
-        "PA2G4", "EIF2S1", "EIF2S2", "EIF3B", "EIF3D", "EIF4G1", "AIMP2",
-        "DDX18", "DDX21", "EXOSC5", "FARSA", "GNL3", "IARS1", "IPO4",
-        "MPHOSPH10", "MRPS18B", "NOLC1", "POLR1B", "POLR2E", "RAN",
-        "RCL1", "RPL22", "RPL6", "RPS2", "RPS5", "RPS6", "SNRPD1",
-    ],
-    "IL6_JAK_STAT3": [
-        "IL6", "IL6R", "JAK1", "JAK2", "STAT3", "SOCS3", "MCL1", "BCL2L1",
-        "IL6ST", "TYK2", "STAT1", "IL10", "IL10RA", "IL10RB", "IL21",
-        "IL21R", "OSMR", "LIFR", "LIF", "CNTF", "CNTFR", "CSF3R",
-        "PIM1", "JUNB", "IRF1", "MYC", "CCND1", "VEGFA", "HIF1A",
-        "IL2RA", "CXCL9", "CCL2", "IL4R", "IL13RA1", "TNFRSF1B",
-        "CD44", "CD38", "FAS", "IFNGR1", "IFNGR2", "CSF2RB",
-    ],
-    "UNFOLDED_PROTEIN_RESPONSE": [
-        "XBP1", "ATF4", "ATF6", "DDIT3", "HSPA5", "CALR", "PDIA4",
-        "ERN1", "EIF2AK3", "EIF2S1", "DNAJB9", "DNAJC3", "HERPUD1",
-        "SEC61A1", "SEC61B", "SSR1", "CANX", "PDIA3", "PDIA6",
-        "ERO1A", "HYOU1", "MANF", "SDF2L1", "VIMP", "DERL1",
-        "OS9", "SEL1L", "EDEM1", "UGGT1", "PPP1R15A", "TRIB3",
-        "GADD45A", "BBC3", "SERP1", "STC2", "WIPI1", "CEBPB",
-    ],
-    "P53_PATHWAY": [
-        "TP53", "CDKN1A", "MDM2", "BAX", "BBC3", "GADD45A", "FAS",
-        "PMAIP1", "MDM4", "CDKN2A", "RB1", "ATM", "ATR", "CHEK1",
-        "CHEK2", "TP53BP1", "TP53BP2", "PERP", "SESN1", "SESN2",
-        "TIGAR", "SCO2", "DRAM1", "ZMAT3", "DDB2", "XPC", "POLK",
-        "RRM2B", "FDXR", "GLS2", "STEAP3", "PIDD1", "LRDD",
-        "APAF1", "CASP9", "CASP3", "PTEN", "TSC2", "RPRM",
-    ],
-    "NFKB_SIGNALING": [
-        "NFKB1", "RELA", "TNF", "TNFAIP3", "NFKBIA", "CXCL8", "IL1B",
-        "NFKB2", "RELB", "REL", "IKBKB", "IKBKG", "CHUK", "TRAF2",
-        "TRAF3", "TRAF6", "RIPK1", "BIRC2", "BIRC3", "XIAP",
-        "BCL2A1", "BCL2L1", "CFLAR", "CCL5", "CXCL1", "CXCL2",
-        "IL6", "ICAM1", "VCAM1", "SELE", "MMP9", "PTGS2",
-        "CSF2", "CSF3", "LTA", "LTB", "CD40", "CD80", "CD86",
-    ],
-    "PI3K_AKT_MTOR": [
-        "PIK3CA", "AKT1", "MTOR", "PTEN", "TSC1", "TSC2", "RHEB",
-        "PIK3CB", "PIK3CD", "PIK3R1", "PIK3R2", "AKT2", "AKT3",
-        "PDK1", "RPTOR", "RICTOR", "MLST8", "RPS6KB1", "EIF4EBP1",
-        "GSK3B", "FOXO1", "FOXO3", "BAD", "CASP9", "CDKN1B",
-        "RPS6", "EIF4E", "EIF4G1", "ULK1", "TFEB", "PPARG",
-        "INSR", "IGF1R", "ERBB2", "ERBB3", "EGFR", "VEGFA",
-    ],
+# Re-export canonical gene sets with enrichment-specific key aliases.
+# CELL_CYCLE and APOPTOSIS are enrichment-only (not used in pathway scoring).
+HALLMARK_PATHWAYS: Dict[str, List[str]] = {
+    "MYC_TARGETS": HALLMARK_GENE_SETS["MYC_TARGETS_V1"],
+    "IL6_JAK_STAT3": HALLMARK_GENE_SETS["IL6_JAK_STAT3_SIGNALING"],
+    "UNFOLDED_PROTEIN_RESPONSE": HALLMARK_GENE_SETS["UNFOLDED_PROTEIN_RESPONSE"],
+    "P53_PATHWAY": HALLMARK_GENE_SETS["P53_PATHWAY"],
+    "NFKB_SIGNALING": HALLMARK_GENE_SETS["TNFA_SIGNALING_VIA_NFKB"],
+    "PI3K_AKT_MTOR": HALLMARK_GENE_SETS["PI3K_AKT_MTOR_SIGNALING"],
     "CELL_CYCLE": [
         "CDK4", "CDK6", "CCND1", "CCND2", "CCNE1", "RB1",
         "CDK2", "CDK1", "CCNA2", "CCNB1", "CCNB2", "CDC25A",

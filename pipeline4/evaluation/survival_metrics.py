@@ -11,10 +11,15 @@ logger = logging.getLogger(__name__)
 def concordance_index(
     T: np.ndarray, E: np.ndarray, risk_scores: np.ndarray,
 ) -> float:
-    """Compute Harrell's concordance index."""
+    """Compute Harrell's concordance index.
+
+    Sign convention:
+        All models return risk_scores where **higher = higher risk**.
+        lifelines.concordance_index expects predicted_scores where
+        **higher = longer survival (lower risk)**, so we negate once here.
+        Models must NOT pre-negate their scores.
+    """
     from lifelines.utils import concordance_index as ci_fn
-    # lifelines expects: event_times, predicted_scores, event_observed
-    # Higher predicted score = lower risk for lifelines convention
     return ci_fn(T, -risk_scores, E)
 
 

@@ -171,11 +171,20 @@ class PipelineConfig(BaseModel):
         Each JSON file maps to a section: base.json -> base, train.json -> train, etc.
         """
         config_path = Path(config_dir)
-        merged: Dict[str, Any] = {}
+        if not config_path.is_dir():
+            raise FileNotFoundError(f"Config directory not found: {config_dir}")
 
+        merged: Dict[str, Any] = {}
         field_names = set(cls.model_fields.keys())
 
-        for json_file in sorted(config_path.glob("*.json")):
+        json_files = sorted(config_path.glob("*.json"))
+        if not json_files:
+            raise FileNotFoundError(
+                f"No JSON config files found in {config_dir}. "
+                f"Expected files like base.json, ingest.json, train.json, etc."
+            )
+
+        for json_file in json_files:
             section = json_file.stem
             with open(json_file) as f:
                 data = json.load(f)

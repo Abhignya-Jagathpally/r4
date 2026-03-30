@@ -135,7 +135,20 @@ class MultiModalAttentionFusion:
         patience: int = 10, lr: float = 1e-3,
     ) -> Dict:
         """Train cross-modal attention fusion model."""
-        # Determine modality dimensions
+        # Validate and determine modality dimensions
+        if not modality_splits:
+            raise ValueError("modality_splits is empty — at least 2 modalities required for cross-attention")
+        if len(modality_splits) < 2:
+            raise ValueError(f"Cross-attention requires >=2 modalities, got {list(modality_splits.keys())}")
+        n_features = X.shape[1]
+        for name, indices in modality_splits.items():
+            if not indices:
+                raise ValueError(f"Modality '{name}' has no feature indices")
+            if max(indices) >= n_features:
+                raise ValueError(
+                    f"Modality '{name}' index {max(indices)} out of bounds for {n_features} features"
+                )
+
         self.modality_dims = {name: len(idx) for name, idx in modality_splits.items()}
         self.modality_splits = modality_splits
 
@@ -173,6 +186,7 @@ class MultiModalAttentionFusion:
                 from pipeline4.models.deepsurv import cox_partial_likelihood_loss
                 loss = cox_partial_likelihood_loss(risk, T_b, E_b)
                 if torch.isnan(loss):
+                    logger.warning(f"NaN loss at epoch {epoch+1} — skipping batch")
                     continue
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
