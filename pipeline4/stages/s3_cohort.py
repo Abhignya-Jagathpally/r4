@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 def run_cohort(config: Any, context: Dict) -> Dict:
     """Build patient-level stratified train/val/test splits."""
-    features = pd.read_parquet(context["features_path"])
     clinical = pd.read_parquet(context["clinical_path"])
 
     splits_dir = Path(config.base.data_dir) / "splits"
@@ -27,8 +26,7 @@ def run_cohort(config: Any, context: Dict) -> Dict:
         logger.warning(f"Stratify column '{strat_col}' not found, using event")
         strat = clinical["event"].values.astype(int)
 
-    patient_ids = features.index.values
-    n = len(patient_ids)
+    n = len(clinical)
 
     # Test split
     sss_test = StratifiedShuffleSplit(

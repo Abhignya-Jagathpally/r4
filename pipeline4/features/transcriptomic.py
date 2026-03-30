@@ -28,17 +28,29 @@ HALLMARK_GENE_SETS: Dict[str, List[str]] = {
 class TranscriptomicFeatures:
     """Build transcriptomic features from gene expression data."""
 
-    def variance_filter(self, X: pd.DataFrame, threshold: float = 0.01) -> pd.DataFrame:
-        """Remove near-zero variance genes."""
-        variances = X.var(axis=0)
+    def variance_filter(
+        self, X: pd.DataFrame, threshold: float = 0.01,
+        train_idx: Optional[np.ndarray] = None,
+    ) -> pd.DataFrame:
+        """Remove near-zero variance genes. Variance computed on train set only."""
+        if train_idx is not None:
+            variances = X.iloc[train_idx].var(axis=0)
+        else:
+            variances = X.var(axis=0)
         mask = variances > threshold
         filtered = X.loc[:, mask]
         logger.info(f"Variance filter: {X.shape[1]} -> {filtered.shape[1]} genes (threshold={threshold})")
         return filtered
 
-    def top_variable_genes(self, X: pd.DataFrame, n: int = 2000) -> pd.DataFrame:
-        """Select top-n most variable genes."""
-        variances = X.var(axis=0).sort_values(ascending=False)
+    def top_variable_genes(
+        self, X: pd.DataFrame, n: int = 2000,
+        train_idx: Optional[np.ndarray] = None,
+    ) -> pd.DataFrame:
+        """Select top-n most variable genes. Variance computed on train set only."""
+        if train_idx is not None:
+            variances = X.iloc[train_idx].var(axis=0).sort_values(ascending=False)
+        else:
+            variances = X.var(axis=0).sort_values(ascending=False)
         top_genes = variances.head(n).index
         result = X[top_genes]
         logger.info(f"Selected top {n} variable genes")
@@ -46,14 +58,22 @@ class TranscriptomicFeatures:
 
     def pathway_scoring(
         self, X: pd.DataFrame, gene_sets: Optional[Dict[str, List[str]]] = None,
+        train_idx: Optional[np.ndarray] = None,
     ) -> pd.DataFrame:
-        """Score samples against gene sets using mean z-score approach."""
+        """Score samples against gene sets using mean z-score approach.
+
+        Scaler is fit on training data only to prevent test leakage.
+        """
         if gene_sets is None:
             gene_sets = HALLMARK_GENE_SETS
 
         scaler = StandardScaler()
+        if train_idx is not None:
+            scaler.fit(X.iloc[train_idx])
+        else:
+            scaler.fit(X)
         X_scaled = pd.DataFrame(
-            scaler.fit_transform(X), index=X.index, columns=X.columns,
+            scaler.transform(X), index=X.index, columns=X.columns,
         )
 
         scores = {}
@@ -74,14 +94,24 @@ class TranscriptomicFeatures:
 
     def pca_embedding(
         self, X: pd.DataFrame, n_components: int = 50,
+        train_idx: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, PCA]:
-        """Compute PCA embedding of expression data."""
+        """Compute PCA embedding. Fit on training data only to prevent leakage."""
         n_components = min(n_components, X.shape[0], X.shape[1])
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+
+        if train_idx is not None:
+            scaler.fit(X.iloc[train_idx])
+        else:
+            scaler.fit(X)
+        X_scaled = scaler.transform(X)
 
         pca = PCA(n_components=n_components, random_state=42)
-        embeddings = pca.fit_transform(X_scaled)
+        if train_idx is not None:
+            pca.fit(X_scaled[train_idx])
+        else:
+            pca.fit(X_scaled)
+        embeddings = pca.transform(X_scaled)
 
         var_explained = pca.explained_variance_ratio_.sum()
         logger.info(

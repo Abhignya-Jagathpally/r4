@@ -54,12 +54,18 @@ class ExpressionLoader:
         """Align patient IDs between expression and clinical data."""
         common = expression.index.intersection(clinical.index)
         if len(common) == 0:
-            logger.warning("No overlapping patient IDs. Using positional alignment.")
-            n = min(len(expression), len(clinical))
-            expression = expression.iloc[:n].copy()
-            clinical = clinical.iloc[:n].copy()
-            expression.index = clinical.index
-            return expression, clinical
+            raise ValueError(
+                "No overlapping patient IDs between expression and clinical data. "
+                f"Expression IDs (first 5): {list(expression.index[:5])}. "
+                f"Clinical IDs (first 5): {list(clinical.index[:5])}. "
+                "Check that ID formats match across data sources."
+            )
+
+        if len(common) < len(expression) * 0.5:
+            logger.warning(
+                f"Only {len(common)}/{len(expression)} patients overlap — "
+                f"check for ID format mismatches"
+            )
 
         logger.info(
             f"Aligned {len(common)} patients "

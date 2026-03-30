@@ -42,29 +42,24 @@ def run_ingest(config: Any, context: Dict) -> Dict:
             else:
                 expression = expr_loader.load_parquet(str(expr_path))
         else:
-            logger.warning(f"Expression path not found: {expr_path}. Generating synthetic.")
-            clinical = loader.generate_synthetic_clinical(
-                config.ingest.demo_n_patients, config.base.seed,
-            )
-            expression = expr_loader.generate_synthetic_expression(
-                clinical.index, config.features.n_top_genes, config.base.seed,
+            raise FileNotFoundError(
+                f"Expression data not found at {expr_path}. "
+                f"Provide real data or set demo_mode=true for synthetic."
             )
 
         # Load clinical from GEO
-        if not config.ingest.demo_mode:
-            clinical_parts = []
-            for acc in config.ingest.geo_accessions:
-                df = loader.fetch_clinical(acc)
-                if not df.empty:
-                    clinical_parts.append(df)
-            if clinical_parts:
-                clinical = pd.concat(clinical_parts)
-            else:
-                logger.warning("No GEO clinical data fetched. Using synthetic.")
-                clinical = loader.generate_synthetic_clinical(
-                    len(expression), config.base.seed,
-                )
-                clinical.index = expression.index
+        clinical_parts = []
+        for acc in config.ingest.geo_accessions:
+            df = loader.fetch_clinical(acc)
+            if not df.empty:
+                clinical_parts.append(df)
+        if clinical_parts:
+            clinical = pd.concat(clinical_parts)
+        else:
+            raise RuntimeError(
+                f"No clinical data fetched from GEO accessions {config.ingest.geo_accessions}. "
+                f"Provide real data or set demo_mode=true for synthetic."
+            )
 
     # Align patients
     expression, clinical = expr_loader.align_patients(expression, clinical)

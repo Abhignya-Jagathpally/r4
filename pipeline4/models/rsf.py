@@ -45,9 +45,14 @@ class RSFModel:
         return {"c_index": c_index}
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        """Return risk scores (negative median survival -> higher = higher risk)."""
+        """Return risk scores (higher = higher risk).
+
+        sksurv's RSF.predict() already returns risk scores where higher = higher risk.
+        No negation needed — survival_metrics.concordance_index handles the lifelines
+        sign convention.
+        """
         X_df = pd.DataFrame(X) if not isinstance(X, pd.DataFrame) else X
-        return -self.model.predict(X_df)
+        return self.model.predict(X_df)
 
     def predict_survival_function(
         self, X: np.ndarray, times: Optional[List[float]] = None,
